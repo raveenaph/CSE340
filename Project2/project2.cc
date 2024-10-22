@@ -29,6 +29,9 @@ struct Rule{
 
     vector<string> vTerminals;
     vector<string> vNonterminals;    
+    vector<Rule> rules;   
+    set<string> terminals;
+    set<string> nonterminals;    
 
 vector<bool> generateUseless(set<string> terminals, vector<Rule> rules){
     map<string, bool> generating;
@@ -250,12 +253,6 @@ void ReadGrammar()
     LexicalAnalyzer lexer;
     Token token;
     Token token2;
-
-    vector<Rule> rules;   
-    set<string> terminals;
-    set<string> nonterminals;    
-//    vector<string> vTerminals;
-//    vector<string> vNonterminals;    
     vector<string> lexemes;
     set<string> lexemesSet;   
     vector<string> :: iterator itr1;
@@ -317,6 +314,38 @@ void ReadGrammar()
 
 }
 
+void printTerminalsAndNoneTerminals() 
+{
+	vector <string> :: iterator itr1;
+	for (itr1 = vTerminals.begin(); itr1 != vTerminals.end(); ++itr1)
+	{
+	    cout << *itr1 << "\t";
+	}
+	vector <string> :: iterator itr2;
+
+	for (itr2 = vNonterminals.begin(); itr2 != vNonterminals.end(); ++itr2)
+	{
+	    cout << *itr2 << "\t" ;
+	}
+
+	cout << "\n";
+}
+
+void RemoveUselessSymbols() 
+{
+	vector<bool> rRules = generateUseless(terminals, rules);
+
+	for(int i = 0; i < rRules.size(); i++){
+		if(rRules[i]){
+		    cout << rules[i].LHS.lexeme << "\t->\t";
+		    for(int j = 0; j < rules[i].RHS.size(); j++){
+			cout << rules[i].RHS[j].lexeme << "\t";
+		    }
+		    cout << "\n";
+		}
+	}            
+}
+	    
 
 int main (int argc, char* argv[])
 {
@@ -334,46 +363,15 @@ int main (int argc, char* argv[])
 
     switch (task) {
 
-        case 1:{
-
-            //printTerminalsAndNoneTerminals();
-
-            vector <string> :: iterator itr1;
-            for (itr1 = vTerminals.begin(); itr1 != vTerminals.end(); ++itr1)
-            {
-                cout << *itr1 << "\t";
-            }
-            vector <string> :: iterator itr2;
-
-            for (itr2 = vNonterminals.begin(); itr2 != vNonterminals.end(); ++itr2)
-            {
-                cout << *itr2 << "\t" ;
-            }
-
-            cout << "\n";
-            
+        case 1: printTerminalsAndNoneTerminals();
 	    break;
 
-        }
-	       /*
-        case 2:{
-
-	    //RemoveUselessSymbols()
-            vector<bool> rRules = generateUseless(terminals, rules);
-            
-            for(int i = 0; i < rRules.size(); i++){
-                if(rRules[i]){
-                    cout << rules[i].LHS.lexeme << "\t->\t";
-                    for(int j = 0; j < rules[i].RHS.size(); j++){
-                        cout << rules[i].RHS[j].lexeme << "\t";
-                    }
-                    cout << "\n";
-                }
-            }            
-	    
+	       
+        case 2: RemoveUselessSymbols();
             break;
 
-        }
+	       /*
+
         case 3:{          
 	    //CalculateFirstSets()
             vector<string> :: iterator itr3;

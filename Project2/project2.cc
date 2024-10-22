@@ -41,6 +41,67 @@ struct Rule{
     vector<string> :: iterator itr1;
     vector<Rule> :: iterator itr2;
 
+
+void ReadGrammar()
+{
+
+    token = lexer.GetToken();
+
+    while (token.token_type != HASH)
+    {   
+        vector<Token> rhsTokens;
+
+        if(lexemesSet.find(token.lexeme) == lexemesSet.end()){
+            lexemes.push_back(token.lexeme);
+            lexemesSet.insert(token.lexeme);
+        }
+        
+        token2 = lexer.GetToken();
+        
+        if(token2.token_type == ARROW){
+            token2 = lexer.GetToken();
+        }
+        
+        while(token2.token_type != STAR){
+            rhsTokens.push_back(token2);  
+            
+            if(lexemesSet.find(token2.lexeme) == lexemesSet.end()){
+                lexemes.push_back(token2.lexeme);
+                lexemesSet.insert(token2.lexeme);
+            }
+                                             
+            token2 = lexer.GetToken();    
+        }
+        if(rhsTokens.size() == 0){
+            token2.lexeme = "#";
+            rhsTokens.push_back(token2);
+        }
+        rules.push_back(Rule(token, rhsTokens));
+        token = lexer.GetToken();
+    }
+    
+    for (itr1 = lexemes.begin(); itr1 != lexemes.end(); ++itr1) {
+        bool isNonterminal = false;
+        for (itr2 = rules.begin(); itr2 != rules.end(); ++itr2) {
+            if ((itr2->LHS).lexeme.compare(*itr1) == 0) {
+                isNonterminal = true;
+                break;
+            } 
+        }
+        
+        if (isNonterminal) {
+            vNonterminals.push_back(*itr1);
+            nonterminals.insert(*itr1);
+        } else {
+            vTerminals.push_back(*itr1);
+            terminals.insert(*itr1);
+        }
+    }
+
+
+}
+
+
 vector<bool> generateUseless(set<string> terminals, vector<Rule> rules){
     map<string, bool> generating;
     map<string, bool> reachable;
@@ -256,64 +317,6 @@ map<string, set<string> > generateFollow(set<string> terminals, set<string> nont
 }           
 
 
-void ReadGrammar()
-{
-
-    token = lexer.GetToken();
-
-    while (token.token_type != HASH)
-    {   
-        vector<Token> rhsTokens;
-
-        if(lexemesSet.find(token.lexeme) == lexemesSet.end()){
-            lexemes.push_back(token.lexeme);
-            lexemesSet.insert(token.lexeme);
-        }
-        
-        token2 = lexer.GetToken();
-        
-        if(token2.token_type == ARROW){
-            token2 = lexer.GetToken();
-        }
-        
-        while(token2.token_type != STAR){
-            rhsTokens.push_back(token2);  
-            
-            if(lexemesSet.find(token2.lexeme) == lexemesSet.end()){
-                lexemes.push_back(token2.lexeme);
-                lexemesSet.insert(token2.lexeme);
-            }
-                                             
-            token2 = lexer.GetToken();    
-        }
-        if(rhsTokens.size() == 0){
-            token2.lexeme = "#";
-            rhsTokens.push_back(token2);
-        }
-        rules.push_back(Rule(token, rhsTokens));
-        token = lexer.GetToken();
-    }
-    
-    for (itr1 = lexemes.begin(); itr1 != lexemes.end(); ++itr1) {
-        bool isNonterminal = false;
-        for (itr2 = rules.begin(); itr2 != rules.end(); ++itr2) {
-            if ((itr2->LHS).lexeme.compare(*itr1) == 0) {
-                isNonterminal = true;
-                break;
-            } 
-        }
-        
-        if (isNonterminal) {
-            vNonterminals.push_back(*itr1);
-            nonterminals.insert(*itr1);
-        } else {
-            vTerminals.push_back(*itr1);
-            terminals.insert(*itr1);
-        }
-    }
-
-
-}
 
 void printTerminalsAndNoneTerminals() 
 {
@@ -388,6 +391,94 @@ void CalculateFirstSets()
 	}
 }
 
+void CalculateFollowSets()
+{
+	vector<string> :: iterator itr3;
+	vector<string> :: iterator itr4;     
+
+	map<string, set<string> > aFollowSet;
+	aFollowSet = generateFollow(terminals, nonterminals, rules);
+	lexemes.insert(lexemes.begin(), "$");
+
+	for(itr3 = vNonterminals.begin(); itr3 != vNonterminals.end(); ++itr3){                  
+		cout << "FOLLOW(" << *itr3 << ") = { ";
+		int i = 0;                
+		for(itr4 = lexemes.begin(); itr4 != lexemes.end(); ++itr4){
+		    if(aFollowSet[*itr3].find(*itr4) != aFollowSet[*itr3].end()){
+			if(i == aFollowSet[*itr3].size()-1){
+			    cout << *itr4;
+			}
+			else{
+			    cout << *itr4 << ", ";
+			}
+			i++;
+		    }
+		}   
+		cout << " }\n";
+	}
+}	
+
+
+void CheckIfGrammarHasPredictiveParser()
+{
+	set<string> :: iterator itr1;
+	set<string> :: iterator itr2;
+	vector<Token> :: iterator itr4;
+	vector<Token> :: iterator itr5;
+	vector<bool> rRules = generateUseless(terminals, rules);
+	map<string, set<string> > aFirstSet = generateFirst(terminals, rules);
+	map<string, set<string> > aFollowSet = generateFollow(terminals, nonterminals, rules);
+
+	bool parse = true;
+
+	for(int i = 0; i < rRules.size(); i++){
+		for(int j = 0; j < rRules.size(); j++){
+		    if(!rRules[i]){
+			parse = false;
+			break;
+		    }
+		    bool epsilon = true;
+		    if(rules[i].LHS.lexeme == rules[j].LHS.lexeme && i != j){
+			for(itr4 = rules[i].RHS.begin(); itr4 != rules[i].RHS.end(); ++itr4){
+			    for(itr5 = rules[j].RHS.begin(); itr5 != rules[j].RHS.end(); ++itr5){
+				if(aFirstSet[itr5->lexeme].find(itr4->lexeme) != aFirstSet[itr5->lexeme].end()){
+				    parse = false;
+				    break;
+				}
+		 
+				if(aFirstSet[itr5->lexeme].find("#") == aFirstSet[itr5->lexeme].end()){
+				    epsilon = false;
+				    break;
+				}        
+			    }
+			    if(!epsilon){
+				break;
+			    }
+			}
+		    }
+		    for(int k = 0; k < rules[i].RHS.size(); k++){
+			if(rules[i].RHS[k].lexeme == ("#")){
+			    for(itr1 = aFirstSet[rules[i].LHS.lexeme].begin(); itr1 != aFirstSet[rules[i].LHS.lexeme].end(); ++itr1){
+				for(itr2 = aFollowSet[rules[i].LHS.lexeme].begin(); itr2 != aFollowSet[rules[i].LHS.lexeme].end(); ++itr2){
+				    if(*itr1 == *itr2){
+					parse = false;
+					break;
+				    }
+				}
+			    }
+			}
+		    }
+		}
+	}
+
+	if(parse){
+		cout << "YES\n";
+	}
+	else{
+		cout << "NO\n";
+	}
+}
+
 int main (int argc, char* argv[])
 {
     int task;
@@ -407,104 +498,17 @@ int main (int argc, char* argv[])
         case 1: printTerminalsAndNoneTerminals();
 	    break;
 
-	       
         case 2: RemoveUselessSymbols();
             break;
-
 
         case 3: CalculateFirstSets();
             break;
 
-	       /*
-        case 4:{
-
-	    //Calculate FollowSets()
-            vector<string> :: iterator itr3;
-            vector<string> :: iterator itr4;     
-            
-            map<string, set<string> > aFollowSet;
-            aFollowSet = generateFollow(terminals, nonterminals, rules);
-            lexemes.insert(lexemes.begin(), "$");
-            
-            for(itr3 = vNonterminals.begin(); itr3 != vNonterminals.end(); ++itr3){                  
-                cout << "FOLLOW(" << *itr3 << ") = { ";
-                int i = 0;                
-                for(itr4 = lexemes.begin(); itr4 != lexemes.end(); ++itr4){
-                    if(aFollowSet[*itr3].find(*itr4) != aFollowSet[*itr3].end()){
-                        if(i == aFollowSet[*itr3].size()-1){
-                            cout << *itr4;
-                        }
-                        else{
-                            cout << *itr4 << ", ";
-                        }
-                        i++;
-                    }
-                }   
-                cout << " }\n";
-            }
+        case 4: CalculateFollowSets();
             break;
-        }
-        case 5:{
 
-	    //CheckIfGrammarHasPredictiveParser()
-            set<string> :: iterator itr1;
-            set<string> :: iterator itr2;
-            vector<Token> :: iterator itr4;
-            vector<Token> :: iterator itr5;
-            vector<bool> rRules = generateUseless(terminals, rules);
-            map<string, set<string> > aFirstSet = generateFirst(terminals, rules);
-            map<string, set<string> > aFollowSet = generateFollow(terminals, nonterminals, rules);
-            
-            bool parse = true;
-            
-            for(int i = 0; i < rRules.size(); i++){
-                for(int j = 0; j < rRules.size(); j++){
-                    if(!rRules[i]){
-                        parse = false;
-                        break;
-                    }
-                    bool epsilon = true;
-                    if(rules[i].LHS.lexeme == rules[j].LHS.lexeme && i != j){
-                        for(itr4 = rules[i].RHS.begin(); itr4 != rules[i].RHS.end(); ++itr4){
-                            for(itr5 = rules[j].RHS.begin(); itr5 != rules[j].RHS.end(); ++itr5){
-                                if(aFirstSet[itr5->lexeme].find(itr4->lexeme) != aFirstSet[itr5->lexeme].end()){
-                                    parse = false;
-                                    break;
-                                }
-                 
-                                if(aFirstSet[itr5->lexeme].find("#") == aFirstSet[itr5->lexeme].end()){
-                                    epsilon = false;
-                                    break;
-                                }        
-                            }
-                            if(!epsilon){
-                                break;
-                            }
-                        }
-                    }
-                    for(int k = 0; k < rules[i].RHS.size(); k++){
-                        if(rules[i].RHS[k].lexeme == ("#")){
-                            for(itr1 = aFirstSet[rules[i].LHS.lexeme].begin(); itr1 != aFirstSet[rules[i].LHS.lexeme].end(); ++itr1){
-                                for(itr2 = aFollowSet[rules[i].LHS.lexeme].begin(); itr2 != aFollowSet[rules[i].LHS.lexeme].end(); ++itr2){
-                                    if(*itr1 == *itr2){
-                                        parse = false;
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            
-            if(parse){
-                cout << "YES\n";
-            }
-            else{
-                cout << "NO\n";
-            }
+        case 5: CheckIfGrammarHasPredictiveParser();
             break;
-        } */
 
         default:
             cout << "Error: Unrecognized task number" << task << "\n";

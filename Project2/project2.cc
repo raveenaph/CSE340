@@ -27,6 +27,9 @@ struct Rule{
     }
 };
 
+    vector<string> vTerminals;
+    vector<string> vNonterminals;    
+
 vector<bool> generateUseless(set<string> terminals, vector<Rule> rules){
     map<string, bool> generating;
     map<string, bool> reachable;
@@ -97,6 +100,7 @@ vector<bool> generateUseless(set<string> terminals, vector<Rule> rules){
     }
     return rRules;
 }
+
 map<string, set<string> > generateFirst(set<string> terminals, vector<Rule> rules){
     map<string, set<string> > firstSets;
     set<string> firstRHS;
@@ -240,18 +244,9 @@ map<string, set<string> > generateFollow(set<string> terminals, set<string> nont
     return followSets; 
 }           
 
-int main (int argc, char* argv[])
+
+void ReadGrammar()
 {
-    int task;
-
-    if (argc < 2)
-    {
-        cout << "Error: missing argument\n";
-        return 1;
-    }
-
-    task = atoi(argv[1]);
-    
     LexicalAnalyzer lexer;
     Token token;
     Token token2;
@@ -259,8 +254,8 @@ int main (int argc, char* argv[])
     vector<Rule> rules;   
     set<string> terminals;
     set<string> nonterminals;    
-    vector<string> vTerminals;
-    vector<string> vNonterminals;    
+//    vector<string> vTerminals;
+//    vector<string> vNonterminals;    
     vector<string> lexemes;
     set<string> lexemesSet;   
     vector<string> :: iterator itr1;
@@ -319,8 +314,30 @@ int main (int argc, char* argv[])
         }
     }
 
+
+}
+
+
+int main (int argc, char* argv[])
+{
+    int task;
+
+    if (argc < 2)
+    {
+        cout << "Error: missing argument\n";
+        return 1;
+    }
+
+    task = atoi(argv[1]);
+    
+    ReadGrammar();
+
     switch (task) {
+
         case 1:{
+
+            //printTerminalsAndNoneTerminals();
+
             vector <string> :: iterator itr1;
             for (itr1 = vTerminals.begin(); itr1 != vTerminals.end(); ++itr1)
             {
@@ -332,10 +349,16 @@ int main (int argc, char* argv[])
             {
                 cout << *itr2 << "\t" ;
             }
+
             cout << "\n";
-            break;
+            
+	    break;
+
         }
+	       /*
         case 2:{
+
+	    //RemoveUselessSymbols()
             vector<bool> rRules = generateUseless(terminals, rules);
             
             for(int i = 0; i < rRules.size(); i++){
@@ -347,9 +370,12 @@ int main (int argc, char* argv[])
                     cout << "\n";
                 }
             }            
+	    
             break;
+
         }
         case 3:{          
+	    //CalculateFirstSets()
             vector<string> :: iterator itr3;
             set<string> :: iterator itr4;
             vector<string>::iterator terminalIterator;     
@@ -388,6 +414,8 @@ int main (int argc, char* argv[])
             break;
         }
         case 4:{
+
+	    //Calculate FollowSets()
             vector<string> :: iterator itr3;
             vector<string> :: iterator itr4;     
             
@@ -414,6 +442,8 @@ int main (int argc, char* argv[])
             break;
         }
         case 5:{
+
+	    //CheckIfGrammarHasPredictiveParser()
             set<string> :: iterator itr1;
             set<string> :: iterator itr2;
             vector<Token> :: iterator itr4;
@@ -471,9 +501,10 @@ int main (int argc, char* argv[])
                 cout << "NO\n";
             }
             break;
-        }
+        } */
+
         default:
-            cout << "Error: unrecognized task number " << task << "\n";
+            cout << "Error: Unrecognized task number" << task << "\n";
             break;
     }
     return 0;

@@ -33,6 +33,14 @@ struct Rule{
     set<string> terminals;
     set<string> nonterminals;    
 
+    LexicalAnalyzer lexer;
+    Token token;
+    Token token2;
+    vector<string> lexemes;
+    set<string> lexemesSet;   
+    vector<string> :: iterator itr1;
+    vector<Rule> :: iterator itr2;
+
 vector<bool> generateUseless(set<string> terminals, vector<Rule> rules){
     map<string, bool> generating;
     map<string, bool> reachable;
@@ -250,13 +258,6 @@ map<string, set<string> > generateFollow(set<string> terminals, set<string> nont
 
 void ReadGrammar()
 {
-    LexicalAnalyzer lexer;
-    Token token;
-    Token token2;
-    vector<string> lexemes;
-    set<string> lexemesSet;   
-    vector<string> :: iterator itr1;
-    vector<Rule> :: iterator itr2;
 
     token = lexer.GetToken();
 
@@ -347,6 +348,46 @@ void RemoveUselessSymbols()
 }
 	    
 
+void CalculateFirstSets()
+{	
+
+	vector<string> :: iterator itr3;
+	set<string> :: iterator itr4;
+	vector<string>::iterator terminalIterator;     
+
+	map<string, set<string> > aFirstSet;
+	aFirstSet = generateFirst(terminals, rules);
+
+	for(itr3 = vNonterminals.begin(); itr3 != vNonterminals.end(); ++itr3){                  
+	    cout << "FIRST(" << *itr3 << ") = { ";
+	    
+	    int printCount = 0;
+	    
+	    if (aFirstSet[*itr3].find("#") != aFirstSet[*itr3].end()) {
+		if(printCount == aFirstSet[*itr3].size()-1){
+		    cout << "#";
+		}
+		else{
+		    cout << "#" << ", ";
+		    printCount++;
+		}
+	    }
+	    
+	    for (terminalIterator = lexemes.begin(); terminalIterator != lexemes.end(); ++terminalIterator) {
+		if (aFirstSet[*itr3].find(*terminalIterator) != aFirstSet[*itr3].end()) {
+		    if(printCount == aFirstSet[*itr3].size()-1){
+			cout << *terminalIterator;
+		    }
+		    else{
+			cout << *terminalIterator << ", ";
+			printCount++;
+		    }
+		}
+	    }
+	    cout << " }\n";
+	}
+}
+
 int main (int argc, char* argv[])
 {
     int task;
@@ -370,47 +411,11 @@ int main (int argc, char* argv[])
         case 2: RemoveUselessSymbols();
             break;
 
-	       /*
 
-        case 3:{          
-	    //CalculateFirstSets()
-            vector<string> :: iterator itr3;
-            set<string> :: iterator itr4;
-            vector<string>::iterator terminalIterator;     
-            
-            map<string, set<string> > aFirstSet;
-            aFirstSet = generateFirst(terminals, rules);
-            
-            for(itr3 = vNonterminals.begin(); itr3 != vNonterminals.end(); ++itr3){                  
-                cout << "FIRST(" << *itr3 << ") = { ";
-                
-                int printCount = 0;
-                
-                if (aFirstSet[*itr3].find("#") != aFirstSet[*itr3].end()) {
-                    if(printCount == aFirstSet[*itr3].size()-1){
-                        cout << "#";
-                    }
-                    else{
-                        cout << "#" << ", ";
-                        printCount++;
-                    }
-                }
-                
-                for (terminalIterator = lexemes.begin(); terminalIterator != lexemes.end(); ++terminalIterator) {
-                    if (aFirstSet[*itr3].find(*terminalIterator) != aFirstSet[*itr3].end()) {
-                        if(printCount == aFirstSet[*itr3].size()-1){
-                            cout << *terminalIterator;
-                        }
-                        else{
-                            cout << *terminalIterator << ", ";
-                            printCount++;
-                        }
-                    }
-                }
-                cout << " }\n";
-            }
+        case 3: CalculateFirstSets();
             break;
-        }
+
+	       /*
         case 4:{
 
 	    //Calculate FollowSets()

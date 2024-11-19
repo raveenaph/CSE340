@@ -285,6 +285,12 @@ Token match(TokenType expected_type)
 }
 
 
+InstructionNode* get_last(InstructionNode* list)
+{
+    while (list->next != NULL) 
+        list = list->next;
+    return list;
+}
 
 void parse_id_list()
 {
@@ -405,6 +411,8 @@ struct InstructionNode* parse_output()
     instr->output_inst.var_index = varMap[t.lexeme];
 
     match(SEMICOLON);
+
+    instr->next = NULL;
     
     return instr;
 }
@@ -451,11 +459,13 @@ struct InstructionNode* parse_assign()
     //end of assign
     match(SEMICOLON);
 
+    stmt->next = NULL;
+
     return stmt;
 }
 
 
-struct InstructionNode* parseInstruction()
+struct InstructionNode* parseInstrList()
 {
     InstructionNode* instr; // Instruction 
     InstructionNode* instrList; // Instruction list 
@@ -512,11 +522,22 @@ struct InstructionNode* parseInstruction()
     //get_last(instr)->next = instrList;
     */
 
+
+    t2 = lexer.peek(1);
+    if (t2.token_type != RBRACE) {
+        instrList = parseInstrList();
+    }
+    else {
+        instrList = NULL;
+    }
+
+    get_last(instr)->next = instrList;
+
     return instr;
 }
 
 
-
+/*
 struct InstructionNode* parse_body()
 {
 
@@ -547,6 +568,19 @@ struct InstructionNode* parse_body()
     //match(RBRACE);
 
      return instrNodeStart;
+}
+*/
+
+
+struct InstructionNode* parse_body()
+{
+    struct InstructionNode* st1;
+
+    match(LBRACE);
+    st1 = parseInstrList();
+    match(RBRACE);
+
+    return st1;
 }
 
 void parse_input_values() {

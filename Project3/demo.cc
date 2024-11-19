@@ -368,13 +368,34 @@ ArithmeticOperatorType get_op(TokenType t) {
     return OPERATOR_NONE;
 }
 
+struct InstructionNode* parse_input() 
+{
+    Token t;
+    InstructionNode* instr = new InstructionNode;
+    instr->type = IN;
+
+    //Check that it is an input instruction and move token index forward to the next token
+    t = match(INPUT);
+
+    //Get the variable
+    t = match(ID);
+
+    //Assign the index of the variable in mem to var_index of the input instruction
+    instr->output_inst.var_index = varMap[t.lexeme];
+
+    match(SEMICOLON);
+
+    return instr;
+
+}
+
 struct InstructionNode* parse_output()
 {
     Token t;
     InstructionNode* instr = new InstructionNode;
     instr->type = OUT;
 
-    //Check that it is and output instruction
+    //Check that it is an output instruction and move token index forward to the next token
     t = match(OUTPUT);
 
     //Get the variable
@@ -450,6 +471,9 @@ struct InstructionNode* parseInstruction()
     }
     else if (t1.token_type == OUTPUT) {
         instr = parse_output();
+    } 
+    else if (t1.token_type == INPUT) {
+        instr = parse_input();
     }
     /*
     else if (t1.token_type == PRINT) {
@@ -505,7 +529,7 @@ struct InstructionNode* parse_body()
     struct InstructionNode* curr = new InstructionNode;
 
     instrNodeStart = parseInstruction();
-    curr = instrNodeStart;
+     curr = instrNodeStart;
 
     struct InstructionNode* tmp = new InstructionNode;
 
@@ -525,13 +549,31 @@ struct InstructionNode* parse_body()
      return instrNodeStart;
 }
 
+void parse_input_values() {
+
+    Token t;
+
+    //Move past the end RBRACE 
+    t = lexer.GetToken();
+
+    //Get all the nums and push them into the inputs vector
+    while (lexer.peek(1).token_type != END_OF_FILE)
+    {
+        t = lexer.GetToken();
+        inputs.push_back(atoi(t.lexeme));
+    }
+   
+}
 
 struct InstructionNode* parse_program()
 {
     struct InstructionNode* n1 = NULL;
 
     parse_var_section(); // variables declared here
+    
     n1 = parse_body(); 	// program code graph generated in here
+     
+    parse_input_values();
 
     return n1;
 }
@@ -540,3 +582,4 @@ struct InstructionNode* parse_program()
 struct InstructionNode* parse_generate_intermediate_representation() {
     return parse_program();
 }
+    

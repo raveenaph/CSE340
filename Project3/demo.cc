@@ -368,9 +368,28 @@ ArithmeticOperatorType get_op(TokenType t) {
     return OPERATOR_NONE;
 }
 
+struct InstructionNode* parse_output()
+{
+    Token t;
+    InstructionNode* instr = new InstructionNode;
+    instr->type = OUT;
+
+    //Check that it is and output instruction
+    t = match(OUTPUT);
+
+    //Get the variable
+    t = match(ID);
+
+    //Assign the index of the variable in mem to var_index of the output instruction
+    instr->output_inst.var_index = varMap[t.lexeme];
+
+    match(SEMICOLON);
+    
+    return instr;
+}
 
 
-struct InstructionNode* parse_assign_stmt()
+struct InstructionNode* parse_assign()
 {
     Token t;
     InstructionNode* stmt = new InstructionNode;
@@ -427,7 +446,10 @@ struct InstructionNode* parseInstruction()
     //assign statement begins with ID
     //a = 1; a = b; a = b + 1; a = b + c; etc
     if (t1.token_type == ID) {
-       instr = parse_assign_stmt();
+       instr = parse_assign();
+    }
+    else if (t1.token_type == OUTPUT) {
+        instr = parse_output();
     }
     /*
     else if (t1.token_type == PRINT) {
@@ -500,7 +522,7 @@ struct InstructionNode* parse_body()
 
     //match(RBRACE);
 
-    return instrNodeStart;
+     return instrNodeStart;
 }
 
 

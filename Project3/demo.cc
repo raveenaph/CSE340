@@ -414,12 +414,6 @@ struct InstructionNode* parse_assign_stmt()
     return stmt;
 }
 
-InstructionNode* get_last(InstructionNode* list)
-{
-    while (list->next != NULL) list = list->next;
-    return list;
-}
-
 
 struct InstructionNode* parseInstruction()
 {
@@ -493,12 +487,16 @@ struct InstructionNode* parse_body()
 
     struct InstructionNode* tmp = new InstructionNode;
 
-    //Keep parsing instructions in program body until RBRACE encountered    
+    //Keep parsing instructions in program body until RBRACE encountered  
+    // and build the linked list 
     while (lexer.peek(1).token_type != RBRACE) {
         tmp = parseInstruction();
         curr->next = tmp;
         curr = tmp;
     }
+
+    //All instructions parse.
+    curr->next = NULL;
 
     //match(RBRACE);
 

@@ -15,15 +15,6 @@ using namespace std;
 Token t;
 LexicalAnalyzer lexer;
 
-
-struct ValueNode
-{
-    std::string name;
-    int value;
-};
-
-map<string, ValueNode*> memory;
-
 //A map for location mapping of variable name to the index where it is stored in the mem array
 map<string, int> varMap;
 
@@ -283,31 +274,17 @@ void error(string message)
     exit(1);
 }
 
-Token peek()
-{
-    Token t = lexer.GetToken();
-    lexer.UngetToken(1);
-    return t;
-}
 
 Token match(TokenType expected_type)
 {
     Token t = lexer.GetToken();
     if (t.token_type != expected_type) {
-        /*if (DEBUG) {
-            t.Print();
-        }*/
         syntax_error();
     }
     return t; 
 }
 
-void declare_var(string id)
-{
-    memory[id] = new ValueNode;
-    memory[id]->name = id;
-    memory[id]->value = 0;
-}
+
 
 void parse_id_list()
 {
@@ -315,7 +292,6 @@ void parse_id_list()
 
     //a, b
     id = match(ID);  //get a
-    //declare_var(id.lexeme);
 
     //Add location and name of variable to map
     varMap[id.lexeme] = indexInmem;
@@ -327,7 +303,6 @@ void parse_id_list()
 
         //Get the var after the comma, eg. a, b
         id = match(ID);
-        //declare_var(id.lexeme);
         //Add location and name of variable to map
         varMap[id.lexeme] = indexInmem;
         indexInmem++;
@@ -340,13 +315,203 @@ void parse_var_section()
     match(SEMICOLON);
 }
 
+int atoi(string s)
+{
+    int i = 0;
+    for (int n = 0; n < s.length(); n++) {
+        i = i * 10;
+        i += (s[n] - '0');
+    }
+    return i;
+}
+
+
+int get_operand_index() {
+    Token t = lexer.GetToken();
+
+    //if operand1 is a variable, it's index is already stored in mem
+    if (t.token_type == ID) 
+        return varMap[t.lexeme];
+
+    //If operand1 is a number, store it in mem and return it's index
+    if (t.token_type == NUM) {
+        mem[indexInmem] = atoi(t.lexeme);
+        indexInmem++;
+        //return the index of the num operand 1
+        return (indexInmem - 1);
+        
+    }
+    
+    cout << "Operand1 is not a ID or a number " << t.lexeme << endl;
+    syntax_error();
+    return -1;
+}
+
+bool is_op(TokenType type)
+{
+    return type == PLUS || type == MINUS || type == MULT || type == DIV;
+}
+
+ArithmeticOperatorType get_op(TokenType t) {
+    if (t == PLUS) {
+        return OPERATOR_PLUS;
+    }
+    if (t == MINUS) {
+        return OPERATOR_MINUS;
+    }
+    if (t == DIV) {
+        return OPERATOR_DIV;
+    }
+    if (t == MULT) {
+        return OPERATOR_MULT;
+    }
+    return OPERATOR_NONE;
+}
+
+
+
+struct InstructionNode* parse_assign_stmt()
+{
+    Token t;
+    InstructionNode* stmt = new InstructionNode;
+    stmt->type = ASSIGN;
+
+    //AssignmentStatement* st = new AssignmentStatement;
+    //stmt->assign_stmt = st;
+
+    Token left = match(ID);
+    //st->left_hand_side = get_value_node(left.lexeme);
+
+    //get the index where this variable is stored in the mem array
+    //That index will be assigned to left_hand_side_index
+    stmt->assign_inst.left_hand_side_index = varMap[left.lexeme];
+
+    match(EQUAL);
+
+    //Assign statement operand 1 is either a number or an ID
+    //Get its index and assign it to the struct
+    stmt->assign_inst.operand1_index = get_operand_index();
+
+    //Now see whether the next token is an operator 
+    t = lexer.peek(1);
+
+    //If operation, then get the op type and the second operand
+    //a = b + c; 
+    if (is_op(t.token_type)) {
+        Token opTok = match(t.token_type);
+        stmt->assign_inst.op = get_op(opTok.token_type);
+        stmt->assign_inst.operand2_index = get_operand_index();
+    }
+    else {
+        //Not an operation, then it is a plain assign 
+        stmt->assign_inst.op = OPERATOR_NONE;
+        stmt->assign_inst.operand2_index = NULL;
+    }
+
+    //end of assign
+    match(SEMICOLON);
+
+    return stmt;
+}
+
+InstructionNode* get_last(InstructionNode* list)
+{
+    while (list->next != NULL) list = list->next;
+    return list;
+}
+
+
+struct InstructionNode* parseInstruction()
+{
+    InstructionNode* instr; // Instruction 
+    InstructionNode* instrList; // Instruction list 
+
+    Token t1, t2;
+    t1 = lexer.peek(1);
+    instr = new InstructionNode;
+
+    //assign statement begins with ID
+    //a = 1; a = b; a = b + 1; a = b + c; etc
+    if (t1.token_type == ID) {
+       instr = parse_assign_stmt();
+    }
+    /*
+    else if (t1.token_type == PRINT) {
+        st = parse_print_stmt();
+    }
+    else if (t1.token_type == WHILE) {
+        st = parse_while_stmt();
+    }
+    else if (t1.token_type == IF) {
+        st = parse_if_stmt();
+    }
+    else if (t1.token_type == SWITCH) {
+        st = parse_switch_stmt();
+    }
+    else if (t1.token_type == FOR) {
+        st = parse_for_stmt();
+    } */
+    else {
+        syntax_error();
+    }
+
+    /*
+    //First instruction parsed, now peek at the next instruction
+    //t2 = lexer.peek(1);
+
+    //if (t2.token_type != RBRACE) {
+        //We are not done with the program,
+        //recursively parse remaining instructions
+      //  instrList = parse_stmt_list();
+   // }
+   // else {
+   //     instrList = NULL;
+    //}
+
+    // we append the proceeding statement list to the END of the parsed statement regardless of type of NULL
+    //get_last(instr)->next = instrList;
+    */
+
+    return instr;
+}
+
+
+
+struct InstructionNode* parse_body()
+{
+
+    //body start
+    match(LBRACE);
+
+    //First instruction
+    struct InstructionNode* instrNodeStart = new InstructionNode;
+
+    struct InstructionNode* curr = new InstructionNode;
+
+    instrNodeStart = parseInstruction();
+    curr = instrNodeStart;
+
+    struct InstructionNode* tmp = new InstructionNode;
+
+    //Keep parsing instructions in program body until RBRACE encountered    
+    while (lexer.peek(1).token_type != RBRACE) {
+        tmp = parseInstruction();
+        curr->next = tmp;
+        curr = tmp;
+    }
+
+    //match(RBRACE);
+
+    return instrNodeStart;
+}
+
 
 struct InstructionNode* parse_program()
 {
     struct InstructionNode* n1 = NULL;
 
     parse_var_section(); // variables declared here
-    //n1 = parse_body(); 	// program code graph generated in here
+    n1 = parse_body(); 	// program code graph generated in here
 
     return n1;
 }

@@ -21,6 +21,11 @@ map<string, int> varMap;
 //index in mem array
 int indexInmem = 0;
 
+struct InstructionNode* parse_generate_intermediate_representation();
+struct InstructionNode* parse_program();
+struct InstructionNode* parse_instr_list();
+struct InstructionNode* parse_body();
+
 
 /*
 struct InstructionNode * parse_generate_intermediate_representation()
@@ -391,6 +396,8 @@ struct InstructionNode* parse_input()
 
     match(SEMICOLON);
 
+    instr->next = NULL;
+
     return instr;
 
 }
@@ -464,8 +471,65 @@ struct InstructionNode* parse_assign()
     return stmt;
 }
 
+ConditionalOperatorType parse_condOp()
+{
+    Token t = lexer.GetToken();
+    if (t.token_type == NOTEQUAL) {
+        return CONDITION_NOTEQUAL;
+    }
+    else if (t.token_type == GREATER) {
+        return CONDITION_GREATER;
+    }
+    else if (t.token_type == LESS) {
+        return CONDITION_LESS;
+    }
+    else {
+        syntax_error();
+    }
 
-struct InstructionNode* parseInstrList()
+}
+
+InstructionNode* make_no_op()
+{
+    InstructionNode* no_op = new InstructionNode;
+    no_op->next = NULL;
+    no_op->type = NOOP;
+    return no_op;
+}
+
+struct InstructionNode* parse_if_stmt() {
+
+    InstructionNode* instr = new InstructionNode;
+    instr->type = CJMP;
+    //instr->next = make_no_op();
+
+    match(IF);
+
+    //eg. IF a > b
+    instr->cjmp_inst.operand1_index = get_operand_index();
+    instr->cjmp_inst.condition_op = parse_condOp();
+    instr->cjmp_inst.operand2_index = get_operand_index();
+
+    //Branch to next instructions in body if condition is true
+    instr->next = parse_body();
+
+    //Create no-op node
+    InstructionNode* no_op = new InstructionNode;
+    no_op->next = NULL;
+    no_op->type = NOOP;
+
+    //Get to the end of the body
+    //Append the no-op to the body, so that it the if block ends up here after executing the body
+    get_last(instr->next)->next = no_op;
+
+    //Assign the false-branch to the no-op as well, so both true and false branches end up in the same place
+    instr->cjmp_inst.target = no_op;
+
+    return instr;
+
+}
+
+struct InstructionNode* parse_instr_list()
 {
     InstructionNode* instr; // Instruction 
     InstructionNode* instrList; // Instruction list 
@@ -477,13 +541,16 @@ struct InstructionNode* parseInstrList()
     //assign statement begins with ID
     //a = 1; a = b; a = b + 1; a = b + c; etc
     if (t1.token_type == ID) {
-       instr = parse_assign();
+        instr = parse_assign();
     }
     else if (t1.token_type == OUTPUT) {
         instr = parse_output();
-    } 
+    }
     else if (t1.token_type == INPUT) {
         instr = parse_input();
+    }
+    else if (t1.token_type == IF) {
+        instr = parse_if_stmt();
     }
     /*
     else if (t1.token_type == PRINT) {
@@ -492,9 +559,7 @@ struct InstructionNode* parseInstrList()
     else if (t1.token_type == WHILE) {
         st = parse_while_stmt();
     }
-    else if (t1.token_type == IF) {
-        st = parse_if_stmt();
-    }
+
     else if (t1.token_type == SWITCH) {
         st = parse_switch_stmt();
     }
@@ -505,27 +570,10 @@ struct InstructionNode* parseInstrList()
         syntax_error();
     }
 
-    /*
-    //First instruction parsed, now peek at the next instruction
-    //t2 = lexer.peek(1);
-
-    //if (t2.token_type != RBRACE) {
-        //We are not done with the program,
-        //recursively parse remaining instructions
-      //  instrList = parse_stmt_list();
-   // }
-   // else {
-   //     instrList = NULL;
-    //}
-
-    // we append the proceeding statement list to the END of the parsed statement regardless of type of NULL
-    //get_last(instr)->next = instrList;
-    */
-
 
     t2 = lexer.peek(1);
     if (t2.token_type != RBRACE) {
-        instrList = parseInstrList();
+        instrList = parse_instr_list();
     }
     else {
         instrList = NULL;
@@ -535,6 +583,8 @@ struct InstructionNode* parseInstrList()
 
     return instr;
 }
+
+
 
 
 /*
@@ -572,23 +622,13 @@ struct InstructionNode* parse_body()
 */
 
 
-struct InstructionNode* parse_body()
-{
-    struct InstructionNode* st1;
-
-    match(LBRACE);
-    st1 = parseInstrList();
-    match(RBRACE);
-
-    return st1;
-}
 
 void parse_input_values() {
 
     Token t;
 
     //Move past the end RBRACE 
-    t = lexer.GetToken();
+    //t = lexer.GetToken();
 
     //Get all the nums and push them into the inputs vector
     while (lexer.peek(1).token_type != END_OF_FILE)
@@ -597,6 +637,17 @@ void parse_input_values() {
         inputs.push_back(atoi(t.lexeme));
     }
    
+}
+
+struct InstructionNode* parse_body()
+{
+    struct InstructionNode* st1;
+
+    match(LBRACE);
+    st1 = parse_instr_list();
+    match(RBRACE);
+
+    return st1;
 }
 
 struct InstructionNode* parse_program()

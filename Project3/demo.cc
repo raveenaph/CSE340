@@ -520,7 +520,7 @@ struct InstructionNode* parse_if_stmt() {
 
     //Get to the end of the body
     //Append the no-op to the body, so that it the if block ends up here after executing the body
-    get_last(instr->next)->next = no_op;
+    get_last(instr)->next = no_op;
 
     //Assign the false-branch to the no-op as well, so both true and false branches end up in the same place
     instr->cjmp_inst.target = no_op;

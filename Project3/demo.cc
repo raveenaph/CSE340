@@ -501,7 +501,6 @@ struct InstructionNode* parse_if_stmt() {
 
     InstructionNode* instr = new InstructionNode;
     instr->type = CJMP;
-    //instr->next = make_no_op();
 
     match(IF);
 
@@ -529,6 +528,45 @@ struct InstructionNode* parse_if_stmt() {
 
 }
 
+struct InstructionNode* parse_while_stmt() {
+
+    InstructionNode* instr = new InstructionNode;
+    instr->type = CJMP;
+
+    match(WHILE);
+
+    //eg. WHILE a > b
+    instr->cjmp_inst.operand1_index = get_operand_index();
+    instr->cjmp_inst.condition_op = parse_condOp();
+    instr->cjmp_inst.operand2_index = get_operand_index();
+
+    instr->next = parse_body();
+
+    //Create jmp node of type JMP
+    InstructionNode* instrJmp = new InstructionNode;
+    instrJmp->type = JMP;
+
+    //Set jmp target to inst
+    instrJmp->jmp_inst.target = instr;
+
+    //append jmp node to end of body of while
+    get_last(instr)->next = instrJmp;
+
+    //create no-op and attach it to the list of instructions after the jmp node
+    InstructionNode* no_op = new InstructionNode;
+    no_op->next = NULL;
+    no_op->type = NOOP;
+
+    instrJmp->next = no_op;
+
+    //set instr target to point to no-op mode
+    instr->cjmp_inst.target = no_op;
+
+    return instr;
+
+
+}
+
 struct InstructionNode* parse_instr_list()
 {
     InstructionNode* instr; // Instruction 
@@ -552,13 +590,14 @@ struct InstructionNode* parse_instr_list()
     else if (t1.token_type == IF) {
         instr = parse_if_stmt();
     }
+    else if (t1.token_type == WHILE) {
+        instr = parse_while_stmt();
+    }
     /*
     else if (t1.token_type == PRINT) {
         st = parse_print_stmt();
     }
-    else if (t1.token_type == WHILE) {
-        st = parse_while_stmt();
-    }
+    
 
     else if (t1.token_type == SWITCH) {
         st = parse_switch_stmt();
@@ -583,45 +622,6 @@ struct InstructionNode* parse_instr_list()
 
     return instr;
 }
-
-
-
-
-/*
-struct InstructionNode* parse_body()
-{
-
-    //body start
-    match(LBRACE);
-
-    //First instruction
-    struct InstructionNode* instrNodeStart = new InstructionNode;
-
-    struct InstructionNode* curr = new InstructionNode;
-
-    instrNodeStart = parseInstruction();
-     curr = instrNodeStart;
-
-    struct InstructionNode* tmp = new InstructionNode;
-
-    //Keep parsing instructions in program body until RBRACE encountered  
-    // and build the linked list 
-    while (lexer.peek(1).token_type != RBRACE) {
-        tmp = parseInstruction();
-        curr->next = tmp;
-        curr = tmp;
-    }
-
-    //All instructions parse.
-    curr->next = NULL;
-
-    //match(RBRACE);
-
-     return instrNodeStart;
-}
-*/
-
-
 
 void parse_input_values() {
 

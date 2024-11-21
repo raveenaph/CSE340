@@ -567,6 +567,54 @@ struct InstructionNode* parse_while_stmt() {
 
 }
 
+struct InstructionNode* parse_for_stmt() {
+
+    //FOR (a = 0; a < 10; a = a + 1) {}
+    match(FOR);
+    match(LPAREN);
+
+    //a = 0;
+    InstructionNode* assign1 = parse_assign();
+
+    //a < 10;
+    InstructionNode* instr = new InstructionNode;
+    instr->type = CJMP;
+
+    instr->cjmp_inst.operand1_index = get_operand_index();
+    instr->cjmp_inst.condition_op = parse_condOp();
+    instr->cjmp_inst.operand2_index = get_operand_index();
+
+    match(SEMICOLON);
+
+    //a = a + 1;) {
+    InstructionNode* assign2 = parse_assign();
+    match(RPAREN);
+
+    instr->next = parse_body();
+
+    assign2->next = new InstructionNode;
+    assign2->next->type = JMP;
+   // assign2->next->next = instr->next;
+    assign2->next->jmp_inst.target = instr;  //jmp to for loop again for next iteration
+
+    get_last(instr)->next = assign2;
+
+    assign1->next = instr;
+
+    //set false branch to no-op node, exit for loop
+    InstructionNode* no_op = new InstructionNode;
+    no_op->next = NULL;
+    no_op->type = NOOP;
+    instr->cjmp_inst.target = no_op;
+
+    assign2->next->next = no_op;
+
+
+    return assign1;
+
+
+}
+
 struct InstructionNode* parse_instr_list()
 {
     InstructionNode* instr; // Instruction 
@@ -593,6 +641,9 @@ struct InstructionNode* parse_instr_list()
     else if (t1.token_type == WHILE) {
         instr = parse_while_stmt();
     }
+    else if (t1.token_type == FOR) {
+        instr = parse_for_stmt();
+    }
     /*
     else if (t1.token_type == PRINT) {
         st = parse_print_stmt();
@@ -602,9 +653,7 @@ struct InstructionNode* parse_instr_list()
     else if (t1.token_type == SWITCH) {
         st = parse_switch_stmt();
     }
-    else if (t1.token_type == FOR) {
-        st = parse_for_stmt();
-    } */
+ */
     else {
         syntax_error();
     }

@@ -615,6 +615,79 @@ struct InstructionNode* parse_for_stmt() {
 
 }
 
+struct InstructionNode* parse_switch_stmt()
+{
+    Token peekToken;
+    Token switchVarToken;
+
+    InstructionNode* begin = make_no_op();
+    InstructionNode* end = make_no_op();
+
+    //switch a {  <--- swtitchVarToken
+    //  CASE 1: { b = 2 * 3;}
+    //  CASE 2: { b = 2 * 4;}
+    // }
+
+    match(SWITCH);
+    switchVarToken = match(ID);
+    match(LBRACE);
+
+    //CASE statements
+    InstructionNode* prev = begin;
+
+    peekToken = lexer.peek(1);
+    while (peekToken.token_type == CASE) {
+
+        InstructionNode* instr = new InstructionNode;
+        instr->type = CJMP;
+        instr->cjmp_inst.condition_op = CONDITION_NOTEQUAL;        
+        instr->cjmp_inst.operand1_index = varMap[switchVarToken.lexeme];  //a
+        //true branch
+        instr->next = make_no_op();
+
+        //CASE 1:
+        match(CASE);
+        instr->cjmp_inst.operand2_index = get_operand_index();  //1
+        match(COLON);
+
+        //false branch  (case statement is true, a is 1)
+        instr->cjmp_inst.target = parse_body();
+
+
+        InstructionNode* instrJmp = new InstructionNode;
+        instrJmp->type = JMP;
+        instrJmp->jmp_inst.target = end;  //Jump to end of all cases
+        instrJmp->next = instr->next;  //NOOP
+        get_last(instr)->next = instrJmp;
+
+        prev->next = instr;
+        prev = instr->next;
+
+        peekToken = lexer.peek(1);
+    }
+
+    //Default case
+    //DEFAULT: {b = 100;}
+    peekToken = lexer.peek(1);
+    if (peekToken.token_type = DEFAULT) {
+        match(DEFAULT);
+        match(COLON);
+
+        InstructionNode* body = parse_body();
+        InstructionNode* noop = make_no_op();
+
+        //Connect default node to end of all previous cases
+        prev->next = body;
+        get_last(body)->next = end;
+        prev = noop;
+    }
+
+    prev->next = end;
+    match(RBRACE);
+    return begin->next;
+
+}
+
 struct InstructionNode* parse_instr_list()
 {
     InstructionNode* instr; // Instruction 
@@ -644,16 +717,9 @@ struct InstructionNode* parse_instr_list()
     else if (t1.token_type == FOR) {
         instr = parse_for_stmt();
     }
-    /*
-    else if (t1.token_type == PRINT) {
-        st = parse_print_stmt();
-    }
-    
-
     else if (t1.token_type == SWITCH) {
-        st = parse_switch_stmt();
+        instr = parse_switch_stmt();
     }
- */
     else {
         syntax_error();
     }

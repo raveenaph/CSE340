@@ -658,7 +658,7 @@ struct InstructionNode* parse_switch_stmt()
         instrJmp->type = JMP;
         instrJmp->jmp_inst.target = end;  //Jump to end of all cases
         instrJmp->next = instr->next;  //NOOP
-        get_last(instr)->next = instrJmp;
+        get_last(instr->cjmp_inst.target)->next = instrJmp;
 
         prev->next = instr;
         prev = instr->next;
@@ -669,7 +669,7 @@ struct InstructionNode* parse_switch_stmt()
     //Default case
     //DEFAULT: {b = 100;}
     peekToken = lexer.peek(1);
-    if (peekToken.token_type = DEFAULT) {
+    if (peekToken.token_type == DEFAULT) {
         match(DEFAULT);
         match(COLON);
 
@@ -733,6 +733,7 @@ struct InstructionNode* parse_instr_list()
         instrList = NULL;
     }
 
+    //append child list of instructions to the end of current list of instructions
     get_last(instr)->next = instrList;
 
     return instr;
